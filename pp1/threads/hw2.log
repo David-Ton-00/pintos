@@ -1,0 +1,16 @@
+Kernel command line: -q run hello
+Pintos booting with 4,096 kB RAM...
+374 pages available in kernel pool.
+374 pages available in user pool.
+Calibrating timer...  102,400 loops/s.
+Boot complete.
+Executing 'hello':
+(hello) begin
+hello, world!
+(hello) end
+Execution of 'hello' complete.
+Timer: 42 ticks
+Thread: 0 idle ticks, 45 kernel ticks, 0 user ticks
+Console: 352 characters output
+Keyboard: 0 keys pressed
+Powering off...

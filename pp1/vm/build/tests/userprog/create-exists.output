@@ -1,0 +1,27 @@
+Copying tests/userprog/create-exists into /tmp/9BgjDKbY2n.dsk...
+Writing command line to /tmp/rvc6og9HIW.dsk...
+qemu -hda /tmp/rvc6og9HIW.dsk -hdb /tmp/rLZsfitUCO.dsk -hdc /tmp/9BgjDKbY2n.dsk -hdd /tmp/HpC2lQMSf7.dsk -m 4 -net none -nographic -monitor null
+Kernel command line: -q -f put create-exists run create-exists
+Pintos booting with 4,096 kB RAM...
+375 pages available in kernel pool.
+374 pages available in user pool.
+Calibrating timer...  58,880,000 loops/s.
+hd0:0: detected 129 sector (64 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+hd0:1: detected 4,032 sector (1 MB) disk, model "QEMU HARDDISK", serial "QM00002"
+hd1:0: detected 73 sector (36 kB) disk, model "QEMU HARDDISK", serial "QM00003"
+hd1:1: detected 8,064 sector (3 MB) disk, model "QEMU HARDDISK", serial "QM00004"
+Formatting file system...done.
+Boot complete.
+Putting 'create-exists' into the file system...
+Executing 'create-exists':
+Execution of 'create-exists' complete.
+Timer: 54 ticks
+Thread: 0 idle ticks, 54 kernel ticks, 0 user ticks
+hd0:0: 0 reads, 0 writes
+hd0:1: 30 reads, 154 writes
+hd1:0: 73 reads, 0 writes
+hd1:1: 0 reads, 0 writes
+Console: 868 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Powering off...
