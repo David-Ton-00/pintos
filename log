@@ -1,0 +1,6 @@
+2012-04-06
+
+the bochs simulator seems to be problematic
+use qemu instead
+qemu is installed locally so that the project won't be self-contained
+
