@@ -4,3 +4,21 @@ the bochs simulator seems to be problematic
 use qemu instead
 qemu is installed locally so that the project won't be self-contained
 
+2012-04-08
+
+the old version of bochs(2.2.6) can't be compiled with g++
+the newer version gives the following error:
+
+Writing command line to /tmp/VaVP0BRIm_.dsk...
+squish-pty bochs -q
+========================================================================
+                     Bochs x86 Emulator 2.5.1.svn
+             Built from SVN snapshot, after release 2.5.1
+00000000000i[     ] installing x module as the Bochs GUI
+                  Compiled on Apr  6 2012 at 19:37:19
+========================================================================
+Next at t=0
+(0) [0x00000000fffffff0] f000:fff0 (unk. ctxt): (invalid)                 ; ffff
+<bochs:1> fgets() returned ERROR.
+debugger interrupt request was 0
+(0).[0] [0x00000000fffffff0] f000:fff0 (unk. ctxt): (invalid)                 ; ffff
