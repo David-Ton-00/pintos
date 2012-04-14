@@ -1,5 +1,5 @@
-Writing command line to /tmp/B3bpgO1y5b.dsk...
-qemu -hda /tmp/B3bpgO1y5b.dsk -m 4 -net none -nographic -monitor null
+Writing command line to /tmp/_I_cOKPIDO.dsk...
+qemu -hda /tmp/_I_cOKPIDO.dsk -m 4 -net none -nographic -monitor null
 Kernel command line: -q run alarm-multiple
 Pintos booting with 4,096 kB RAM...
 375 pages available in kernel pool.
@@ -51,7 +51,7 @@ Executing 'alarm-multiple':
 (alarm-multiple) end
 Execution of 'alarm-multiple' complete.
 Timer: 580 ticks
-Thread: 550 idle ticks, 31 kernel ticks, 0 user ticks
+Thread: 550 idle ticks, 30 kernel ticks, 0 user ticks
 Console: 2955 characters output
 Keyboard: 0 keys pressed
 Powering off...

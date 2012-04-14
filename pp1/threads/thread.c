@@ -126,16 +126,19 @@ thread_tick (void)
 
   struct list_elem *le;
 
-  for (le = sleep_list.head.next; le->next != NULL; le = le->next)
+  for (le = sleep_list.head.next; le->next != NULL; )
     {
-      struct thread *slpr = list_entry(le, struct thread, slp_elem);
+      struct thread *slpr = list_entry(le, struct thread, elem);
 
       if (timer_elapsed(slpr->start) >= slpr->ticks)
 	{
-	  list_remove(&slpr->slp_elem);
-
-	  sema_up(&slpr->pill);
+	  le = list_remove(&slpr->elem);
+	  thread_unblock(slpr);
 	}
+      else
+        {
+          le = le->next;
+        }
     }
 
   /* Update statistics. */

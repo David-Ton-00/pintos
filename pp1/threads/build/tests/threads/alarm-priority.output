@@ -1,5 +1,5 @@
-Writing command line to /tmp/0sb4ZiC9JG.dsk...
-qemu -hda /tmp/0sb4ZiC9JG.dsk -m 4 -net none -nographic -monitor null
+Writing command line to /tmp/xhZU1HMqJz.dsk...
+qemu -hda /tmp/xhZU1HMqJz.dsk -m 4 -net none -nographic -monitor null
 Kernel command line: -q run alarm-priority
 Pintos booting with 4,096 kB RAM...
 375 pages available in kernel pool.
@@ -21,7 +21,7 @@ Executing 'alarm-priority':
 (alarm-priority) end
 Execution of 'alarm-priority' complete.
 Timer: 522 ticks
-Thread: 490 idle ticks, 32 kernel ticks, 0 user ticks
+Thread: 489 idle ticks, 33 kernel ticks, 0 user ticks
 Console: 840 characters output
 Keyboard: 0 keys pressed
 Powering off...

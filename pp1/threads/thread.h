@@ -92,8 +92,6 @@ struct thread
 
     int64_t start;                      /* Start sleeping time */
     int64_t ticks;                      /* Total sleeping time */
-    struct semaphore pill;              /* like a sleeping pill */
-    struct list_elem slp_elem;          /* to wait in the sleep list */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */

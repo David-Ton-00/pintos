@@ -31,3 +31,8 @@ now the project is self-contained with renaming qemu-system-i386 to qemu
 
 2012-04-14
 invoking thread_block and thread_unblock will fail the alarm-simultaneous; but this will not happen when invoking sema_up and sema_down 
+
+2012-04-14
+the problem is not about which functions are invoked but how "le" finds its next elem (thread.c:129); when an elem's time expires and is removed from list its next elem can no longer be accessed. In that case, the next elem is the return value of list_remove
+
+
