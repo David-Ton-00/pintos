@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -89,6 +90,11 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
 
+    int64_t start;                      /* Start sleeping time */
+    int64_t ticks;                      /* Total sleeping time */
+    struct semaphore pill;              /* like a sleeping pill */
+    struct list_elem slp_elem;          /* to wait in the sleep list */
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
@@ -132,5 +138,8 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+/* list of sleeping threads */
+struct list sleep_list;
 
 #endif /* threads/thread.h */

@@ -91,6 +91,7 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
+  list_init (&sleep_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -122,6 +123,20 @@ void
 thread_tick (void) 
 {
   struct thread *t = thread_current ();
+
+  struct list_elem *le;
+
+  for (le = sleep_list.head.next; le->next != NULL; le = le->next)
+    {
+      struct thread *slpr = list_entry(le, struct thread, slp_elem);
+
+      if (timer_elapsed(slpr->start) >= slpr->ticks)
+	{
+	  list_remove(&slpr->slp_elem);
+
+	  sema_up(&slpr->pill);
+	}
+    }
 
   /* Update statistics. */
   if (t == idle_thread)

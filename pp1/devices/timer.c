@@ -99,8 +99,18 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+  enum intr_level level;
+
+  struct thread *t = thread_current();
+  sema_init(&t->pill, 0);
+  if (timer_elapsed (start) < ticks)
+    {
+      t->start = start;
+      t->ticks = ticks;
+      list_push_back(&sleep_list, &t->slp_elem);
+
+      sema_down(&t->pill);   
+    }
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -178,7 +188,7 @@ real_time_sleep (int64_t num, int32_t denom)
 {
   /* Convert NUM/DENOM seconds into timer ticks, rounding down.
           
-        (NUM / DENOM) s          
+     (NUM / DENOM) s          
      ---------------------- = NUM * TIMER_FREQ / DENOM ticks. 
      1 s / TIMER_FREQ ticks
   */
