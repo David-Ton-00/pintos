@@ -22,3 +22,10 @@ Next at t=0
 <bochs:1> fgets() returned ERROR.
 debugger interrupt request was 0
 (0).[0] [0x00000000fffffff0] f000:fff0 (unk. ctxt): (invalid)                 ; ffff
+
+
+2012-04-14
+successfully compile QEMU from source and install it into the ./bin directory
+now the project is self-contained with renaming qemu-system-i386 to qemu
+
+
