@@ -35,4 +35,5 @@ invoking thread_block and thread_unblock will fail the alarm-simultaneous; but t
 2012-04-14
 the problem is not about which functions are invoked but how "le" finds its next elem (thread.c:129); when an elem's time expires and is removed from list its next elem can no longer be accessed. In that case, the next elem is the return value of list_remove
 
-
+2012-04-16
+implement max heap on a doubly linked list is a lot of pain considering the number of pointers to take care of; the benefit is to dynamically insert and remove when the amount of data is not known beforehand
