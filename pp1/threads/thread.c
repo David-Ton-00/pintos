@@ -255,12 +255,21 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  //list_push_back (&ready_list, &t->elem);
+
   max_heap_insert(&ready_list, &t->elem, t->priority);
   t->status = THREAD_READY;
 
-/*  if (!intr_context() && thread_current()->priority < t->priority)
-    thread_yield();*/
+  struct thread *curr = thread_current();
+  /* the senario here is when sema_up() is called in idle() the idle thread hasn't
+   * finished its work we should wait for it to block itself rather than grab cpu here
+   * otherwise, in thread_yield main thread is popped from ready list but
+   * switch_thread(curr, next) returns main thread(should've been idle) and idle thread continues
+   * to run and then block but main is no long in the ready list and so the program hangs
+   * the behavior of switch_thread is quite bizarre here
+   */
+  if (curr != idle_thread)
+    if (!intr_context() && curr->priority < t->priority)
+      thread_yield();
 
   intr_set_level (old_level);
 }
@@ -329,8 +338,9 @@ thread_yield (void)
 
   old_level = intr_disable ();
 
+  if (cur != idle_thread)
   //  list_push_back (&ready_list, &cur->elem);
-  max_heap_insert(&ready_list, &cur->elem, cur->priority);
+     max_heap_insert(&ready_list, &cur->elem, cur->priority);
   cur->status = THREAD_READY;
 
   schedule ();
