@@ -2,8 +2,13 @@
 #define __LIB_KERNEL_PRIORITY_QUEUE_H
 
 /* 
-  Priority queue is built on doubly linked list. As for imformation of doubly linked list, please turn to list.h 
-*/
+ * Priority queue(max heap) is built on doubly linked list.
+ * As for imformation of doubly linked list, please turn to list.h
+ *
+ * max heap property:
+ *    a max heap is a complete binary tree
+ *    every node has a key which is greater than that of its child if any
+ */
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -24,7 +29,7 @@ struct pq_elem
         and everyafter inserted element has id one larger than
         that of its previous element
       */
-    int id;                   
+    int id;
     int priority;
   };
 
@@ -50,13 +55,11 @@ void pq_init(struct pq *pq);
 
 /* List insertion. */
 void pq_insert(struct pq_elem *before, struct pq_elem *elem, int priority);
-void pq_push_front(struct pq *pq, struct pq_elem *elem, int priority);
 void pq_push_back(struct pq *pq, struct pq_elem *elem, int priority);
 
 /* List removal. */
 struct pq_elem *pq_remove(struct pq_elem *elem);
 struct pq_elem *pq_pop_front(struct pq *elem);
-struct pq_elem *pq_pop_back(struct pq *elem);
 
 /* Pq elements. */
 struct pq_elem *pq_front(struct pq *pq);
@@ -68,7 +71,7 @@ struct pq_elem *pq_tail(struct pq *pq);
 size_t pq_size (struct pq *pq);
 bool pq_empty (struct pq *pq);
 
-/* implement priority queue on the doubly linked list */
+/* implement priority queue(max heap) on the doubly linked list */
 struct pq_elem *parent(struct pq_elem *elem);
 struct pq_elem *left(struct pq_elem *elem);
 struct pq_elem *right(struct pq_elem *elem);
@@ -76,9 +79,10 @@ void max_heapify(struct pq_elem *elem);
 void build_max_heap(struct pq *pq);
 struct pq_elem *heap_maximum(struct pq *pq);
 struct pq_elem *heap_extract_max(struct pq *pq);
-void heap_increase_key(struct pq_elem *elem, int key);
+void heap_increase_key(struct pq *pq, struct pq_elem *elem, int key);
 void max_heap_insert(struct pq *pq, struct pq_elem *elem, int priority);
-void exchange(struct pq_elem *fst, struct pq_elem *snd);
-void percolate(struct pq_elem *elem);
+void percolate(struct pq *pq, struct pq_elem *elem);
 
+void exchange(struct pq_elem *fst, struct pq_elem *snd);
+void swap_elem(struct thread *fst, struct thread *snd);
 #endif /* lib/kernel/priority_queue.h */
