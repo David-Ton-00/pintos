@@ -26,7 +26,8 @@
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
-static struct list ready_list;
+//static struct list ready_list;
+static struct pq ready_list;
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -90,7 +91,8 @@ thread_init (void)
   ASSERT (intr_get_level () == INTR_OFF);
 
   lock_init (&tid_lock);
-  list_init (&ready_list);
+ // list_init (&ready_list);
+  pq_init(&ready_list);
   list_init (&sleep_list);
 
   /* Set up a thread structure for the running thread. */
@@ -124,8 +126,8 @@ thread_tick (void)
 {
   struct thread *t = thread_current ();
 
+  /* check if any of the sleepers need to be woken up */
   struct list_elem *le;
-
   for (le = sleep_list.head.next; le->next != NULL; )
     {
       struct thread *slpr = list_entry(le, struct thread, elem);
@@ -253,8 +255,13 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  //list_push_back (&ready_list, &t->elem);
+  max_heap_insert(&ready_list, &t->elem, t->priority);
   t->status = THREAD_READY;
+
+/*  if (!intr_context() && thread_current()->priority < t->priority)
+    thread_yield();*/
+
   intr_set_level (old_level);
 }
 
@@ -321,9 +328,11 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+
+  //  list_push_back (&ready_list, &cur->elem);
+  max_heap_insert(&ready_list, &cur->elem, cur->priority);
   cur->status = THREAD_READY;
+
   schedule ();
   intr_set_level (old_level);
 }
@@ -481,10 +490,15 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
-  if (list_empty (&ready_list))
+  /* if (list_empty (&ready_list)) 
+       return idle_thread; 
+     else 
+       return list_entry (list_pop_front (&ready_list), struct thread, elem); */
+  if (pq_empty(&ready_list))
     return idle_thread;
   else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+    return pq_entry(heap_extract_max(&ready_list), struct thread, elem);
+
 }
 
 /* Completes a thread switch by activating the new thread's page
