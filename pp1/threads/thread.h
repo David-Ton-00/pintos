@@ -3,7 +3,9 @@
 
 #include <debug.h>
 #include <list.h>
+#include <priority_queue.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "threads/synch.h"
 
 /* States in a thread's life cycle. */
@@ -94,7 +96,11 @@ struct thread
     int64_t ticks;                      /* Total sleeping time */
 
     /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
+    //struct list_elem elem;              /* List element. */
+    struct pq_elem elem;
+
+    bool donated;
+    int old_priority;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -136,6 +142,11 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+
+/* List of processes in THREAD_READY state, that is, processes
+   that are ready to run but not actually running. */
+struct pq ready_list;  // moved here to be accessed in synch.c
 
 /* list of sleeping threads */
 struct list sleep_list;

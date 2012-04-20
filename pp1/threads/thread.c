@@ -24,10 +24,6 @@
    Do not modify this value. */
 #define THREAD_BASIC 0xd42df210
 
-/* List of processes in THREAD_READY state, that is, processes
-   that are ready to run but not actually running. */
-//static struct list ready_list;
-static struct pq ready_list;
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -91,7 +87,6 @@ thread_init (void)
   ASSERT (intr_get_level () == INTR_OFF);
 
   lock_init (&tid_lock);
- // list_init (&ready_list);
   pq_init(&ready_list);
   list_init (&sleep_list);
 
@@ -126,22 +121,6 @@ thread_tick (void)
 {
   struct thread *t = thread_current ();
 
-  /* check if any of the sleepers need to be woken up */
-  struct list_elem *le;
-  for (le = sleep_list.head.next; le->next != NULL; )
-    {
-      struct thread *slpr = list_entry(le, struct thread, elem);
-
-      if (timer_elapsed(slpr->start) >= slpr->ticks)
-	{
-	  le = list_remove(&slpr->elem);
-	  thread_unblock(slpr);
-	}
-      else
-        {
-          le = le->next;
-        }
-    }
 
   /* Update statistics. */
   if (t == idle_thread)
@@ -268,7 +247,7 @@ thread_unblock (struct thread *t)
    * the behavior of switch_thread is quite bizarre here
    */
   if (curr != idle_thread)
-    if (!intr_context() && curr->priority < t->priority)
+    if (!intr_context() && curr->priority <= t->priority)
       thread_yield();
 
   intr_set_level (old_level);
@@ -339,8 +318,7 @@ thread_yield (void)
   old_level = intr_disable ();
 
   if (cur != idle_thread)
-  //  list_push_back (&ready_list, &cur->elem);
-     max_heap_insert(&ready_list, &cur->elem, cur->priority);
+    max_heap_insert(&ready_list, &cur->elem, cur->priority);
   cur->status = THREAD_READY;
 
   schedule ();
@@ -351,7 +329,11 @@ thread_yield (void)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  struct thread *curr = thread_current ();
+  curr->priority = new_priority;
+
+  if (pq_entry(heap_maximum(&ready_list), struct thread, elem)->priority > curr->priority)
+    thread_yield();
 }
 
 /* Returns the current thread's priority. */
@@ -500,10 +482,6 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
-  /* if (list_empty (&ready_list)) 
-       return idle_thread; 
-     else 
-       return list_entry (list_pop_front (&ready_list), struct thread, elem); */
   if (pq_empty(&ready_list))
     return idle_thread;
   else

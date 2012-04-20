@@ -159,7 +159,7 @@ pq_empty(struct pq *pq)
 }
 
 /* calculate one's parent by ID attribute of heap
- * ID(ELEM->PARENT) = ceiling(ID(ELEM) / 2)
+ * ID(ELEM->PARENT) = floor(ID(ELEM) / 2)
  */
 struct pq_elem *
 parent(struct pq_elem *elem)
