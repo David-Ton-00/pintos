@@ -1,32 +1,12 @@
 FAIL
-Test output failed to match any acceptable form.
-
-Acceptable output:
-  (priority-donate-nest) begin
-  (priority-donate-nest) Low thread should have priority 32.  Actual priority: 32.
-  (priority-donate-nest) Low thread should have priority 33.  Actual priority: 33.
-  (priority-donate-nest) Medium thread should have priority 33.  Actual priority: 33.
-  (priority-donate-nest) Medium thread got the lock.
-  (priority-donate-nest) High thread got the lock.
-  (priority-donate-nest) High thread finished.
-  (priority-donate-nest) High thread should have just finished.
-  (priority-donate-nest) Middle thread finished.
-  (priority-donate-nest) Medium thread should just have finished.
-  (priority-donate-nest) Low thread should have priority 31.  Actual priority: 31.
-  (priority-donate-nest) end
-Differences in `diff -u' format:
-  (priority-donate-nest) begin
-- (priority-donate-nest) Low thread should have priority 32.  Actual priority: 32.
-- (priority-donate-nest) Low thread should have priority 33.  Actual priority: 33.
-- (priority-donate-nest) Medium thread should have priority 33.  Actual priority: 33.
-+ (priority-donate-nest) Low thread should have priority 32.  Actual priority: 31.
-+ (priority-donate-nest) Low thread should have priority 33.  Actual priority: 31.
-+ (priority-donate-nest) Medium thread should have priority 33.  Actual priority: 32.
-  (priority-donate-nest) Medium thread got the lock.
-- (priority-donate-nest) High thread got the lock.
-- (priority-donate-nest) High thread finished.
-- (priority-donate-nest) High thread should have just finished.
-- (priority-donate-nest) Middle thread finished.
-  (priority-donate-nest) Medium thread should just have finished.
-  (priority-donate-nest) Low thread should have priority 31.  Actual priority: 31.
-  (priority-donate-nest) end
+Kernel panic in run: PANIC at ../../threads/interrupt.c:373 in intr_handler(): Unexpected interrupt
+Call stack: 0xc0107189 0xc01016c5 0xc01017cb 0xc01084c7 0xc010855c 0xc010291a 0xc010a77a 0xc0100fa8
+Translation of call stack:
+0xc0107189: debug_panic (.../../lib/kernel/debug.c:34)
+0xc01016c5: intr_handler (..../threads/interrupt.c:377)
+0xc01017cb: intr_entry (threads/intr-stubs.S:38)
+0xc01084c7: percolate (...rnel/priority_queue.c:300)
+0xc010855c: heap_increase_key (...rnel/priority_queue.c:284)
+0xc010291a: lock_acquire (...../../threads/synch.c:221)
+0xc010a77a: high_thread_func (...priority-donate-nest.c:91)
+0xc0100fa8: kernel_thread (..../../threads/thread.c:439)

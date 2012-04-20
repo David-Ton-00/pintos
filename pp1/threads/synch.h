@@ -2,13 +2,14 @@
 #define THREADS_SYNCH_H
 
 #include <list.h>
+#include <priority_queue.h>
 #include <stdbool.h>
 
 /* A counting semaphore. */
 struct semaphore 
   {
     unsigned value;             /* Current value. */
-    struct list waiters;        /* List of waiting threads. */
+    struct pq waiters;
   };
 
 void sema_init (struct semaphore *, unsigned value);
@@ -22,6 +23,8 @@ struct lock
   {
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
+    bool donated;
+    struct thread *doner;
   };
 
 void lock_init (struct lock *);
@@ -33,7 +36,7 @@ bool lock_held_by_current_thread (const struct lock *);
 /* Condition variable. */
 struct condition 
   {
-    struct list waiters;        /* List of waiting threads. */
+    struct pq waiters;
   };
 
 void cond_init (struct condition *);

@@ -473,8 +473,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
-  t->priority = priority;
+  t->priority = priority; 
   t->magic = THREAD_MAGIC;
+
+  //priority donation
+  t->old_priority = t->priority;
+  t->lock_num = 0;
+  t->donee = NULL;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

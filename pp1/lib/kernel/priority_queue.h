@@ -84,5 +84,4 @@ void max_heap_insert(struct pq *pq, struct pq_elem *elem, int priority);
 void percolate(struct pq *pq, struct pq_elem *elem);
 
 void exchange(struct pq_elem *fst, struct pq_elem *snd);
-void swap_elem(struct thread *fst, struct thread *snd);
 #endif /* lib/kernel/priority_queue.h */

@@ -1,9 +1,9 @@
-Writing command line to /tmp/VhlB5P7kc3.dsk...
-qemu -hda /tmp/VhlB5P7kc3.dsk -m 4 -net none -nographic -monitor null
+Writing command line to /tmp/n8vFvaU547.dsk...
+qemu -hda /tmp/n8vFvaU547.dsk -m 4 -net none -nographic -monitor null
 Kernel command line: -q run alarm-zero
 Pintos booting with 4,096 kB RAM...
-375 pages available in kernel pool.
-374 pages available in user pool.
+374 pages available in kernel pool.
+373 pages available in user pool.
 Calibrating timer...  104,755,200 loops/s.
 Boot complete.
 Executing 'alarm-zero':

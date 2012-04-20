@@ -96,12 +96,13 @@ struct thread
     int64_t ticks;                      /* Total sleeping time */
 
     /* Shared between thread.c and synch.c. */
-    //struct list_elem elem;              /* List element. */
     struct pq_elem elem;
 
-    bool donated;
+    //priority donation
+    int donee_prio;
     int old_priority;
-
+    int lock_num;
+    struct thread *donee;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
