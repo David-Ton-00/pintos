@@ -99,17 +99,19 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  enum intr_level level;
+
 
   struct thread *t = thread_current();
-  sema_init(&t->pill, 0);
   if (timer_elapsed (start) < ticks)
     {
       t->start = start;
       t->ticks = ticks;
-      list_push_back(&sleep_list, &t->slp_elem);
 
-      sema_down(&t->pill);   
+      list_push_back(&sleep_list, &t->elem);
+
+      enum intr_level old_level = intr_disable();
+      thread_block();
+      intr_set_level(old_level);
     }
 }
 
