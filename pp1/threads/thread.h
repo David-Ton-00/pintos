@@ -103,6 +103,8 @@ struct thread
     int old_priority;
     int lock_num;
     struct thread *donee;
+    struct pq *waiters;
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

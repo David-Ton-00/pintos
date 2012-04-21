@@ -37,10 +37,10 @@
    manipulating it:
 
    - down or "P": wait for the value to become positive, then
-     decrement it.
+   decrement it.
 
    - up or "V": increment the value (and wake up one waiting
-     thread, if any). */
+   thread, if any). */
 void
 sema_init (struct semaphore *sema, unsigned value) 
 {
@@ -66,10 +66,12 @@ sema_down (struct semaphore *sema)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  struct thread *cur = thread_current();
+  struct thread *curr = thread_current();
   while (sema->value == 0) 
     {
-      max_heap_insert(&sema->waiters, &cur->elem, cur->priority);
+      // record for later possible priority donation
+      curr->waiters = &sema->waiters;
+      max_heap_insert(&sema->waiters, &curr->elem, curr->priority);
       thread_block ();
     }
   sema->value--;
@@ -116,6 +118,7 @@ sema_up (struct semaphore *sema)
   old_level = intr_disable ();
 
   sema->value++;
+  thread_current()->waiters = NULL;
   if (!pq_empty(&sema->waiters))
     thread_unblock(pq_entry(heap_extract_max(&sema->waiters),
                             struct thread, elem));
@@ -207,24 +210,32 @@ lock_acquire (struct lock *lock)
       struct thread *donee = lock->holder;
       struct thread *doner = curr;
 
+      // only the first doner record the info of donee when multiple doners
+      // wait on the same thread
       if (!lock->donated)
         {
           lock->doner = doner;
           doner->donee_prio = donee->priority;
 	}
       lock->donated = true;
-      donee->priority = doner->priority;
       doner->donee = donee;
-      heap_increase_key(&ready_list, &donee->elem, doner->priority);
 
-      struct thread *t = donee->donee;
-      while (t != NULL)
-	{
-	  t->priority = doner->priority;
-	  t = t->donee;
-	  heap_increase_key(&ready_list, &t->elem, doner->priority);
+      while (donee != NULL)
+	{              
+          donee->priority = doner->priority;
+
+          // whether on a ready_list or wait_list
+	  if (donee->waiters == NULL)
+	    {
+	      heap_increase_key(&ready_list, &donee->elem, doner->priority);
+	    }
+	  else
+	    { 
+	      // nested donation
+	      heap_increase_key(donee->waiters, &donee->elem, doner->priority);
+	    }
+	  donee = donee->donee;
 	}
-
     }
 
   sema_down (&lock->semaphore);
@@ -292,10 +303,10 @@ lock_held_by_current_thread (const struct lock *lock)
 
 /* One semaphore in a list. */
 struct semaphore_elem 
-  {
-    struct pq_elem elem;
-    struct semaphore semaphore;         /* This semaphore. */
-  };
+{
+  struct pq_elem elem;
+  struct semaphore semaphore;         /* This semaphore. */
+};
 
 /* Initializes condition variable COND.  A condition variable
    allows one piece of code to signal a condition and cooperating
@@ -340,8 +351,8 @@ cond_wait (struct condition *cond, struct lock *lock)
   
   sema_init (&waiter.semaphore, 0);
 
-  struct thread *t = pq_entry(&waiter.elem, struct thread, elem);
-  max_heap_insert(&cond->waiters, &waiter.elem, t->priority);
+  struct thread *curr = thread_current();
+  max_heap_insert(&cond->waiters, &waiter.elem, curr->priority);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
@@ -364,7 +375,7 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 
   if (!pq_empty(&cond->waiters))
     sema_up(&pq_entry(heap_extract_max(&cond->waiters),
-                       struct semaphore_elem, elem)->semaphore);
+		      struct semaphore_elem, elem)->semaphore);
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by

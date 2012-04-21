@@ -346,7 +346,10 @@ void
 thread_set_priority (int new_priority) 
 {
   struct thread *curr = thread_current ();
-  curr->priority = new_priority;
+  // priority won't be set until donation is released
+  if (curr->priority <= curr->old_priority)
+    curr->priority = new_priority;
+  curr->old_priority = new_priority;
 
   if (pq_entry(heap_maximum(&ready_list), struct thread, elem)->priority > curr->priority)
     thread_yield();
@@ -477,9 +480,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 
   //priority donation
+  t->donee_prio = PRI_DEFAULT;
   t->old_priority = t->priority;
   t->lock_num = 0;
   t->donee = NULL;
+  t->waiters = NULL;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
