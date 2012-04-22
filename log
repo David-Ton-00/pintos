@@ -40,3 +40,7 @@ implement max heap on a doubly linked list is a lot of pain considering the numb
 
 2012-04-22
 priority queue is not fit for round-robin scheduling
+
+2012-04-23
+some test fails in some occassion while passes in others
+mlfqs-recent-1 still fails 
