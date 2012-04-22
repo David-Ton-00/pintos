@@ -22,12 +22,12 @@ int add2fix(int x, int y)
   return x + y;
 }
 
-int subtract2fix(int x,int y)
+int subtract2fix(int x, int y)
 {
   return x - y;
 }
 
-int add_fix_n(int fix,int n)
+int add_fix_n(int fix, int n)
 {
   return fix + n * my_pow(2, FORMAT);
 }
@@ -37,7 +37,7 @@ int subtract_fix_n(int fix, int n)
   return fix - n * my_pow(2, FORMAT);
 }
 
-int multiply2fix(int x,int y)
+int multiply2fix(int x, int y)
 {
   return ((int64_t)x) * y / my_pow(2, FORMAT);
 }
@@ -47,7 +47,7 @@ int multiply_fix_n(int fix, int n)
   return fix * n;
 }
 
-int divide2fix(int x,int y)
+int divide2fix(int x, int y)
 {
   ASSERT(y != 0);
   return ((int64_t)x) * my_pow(2, FORMAT) / y;

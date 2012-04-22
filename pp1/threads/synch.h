@@ -9,7 +9,8 @@
 struct semaphore 
   {
     unsigned value;             /* Current value. */
-    struct pq waiters;
+    // struct pq waiters;
+    struct list waiters;
   };
 
 void sema_init (struct semaphore *, unsigned value);
@@ -36,13 +37,24 @@ bool lock_held_by_current_thread (const struct lock *);
 /* Condition variable. */
 struct condition 
   {
-    struct pq waiters;
+    //  struct pq waiters;
+    struct list waiters;
   };
 
 void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
+bool cond_greater_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+
+/* One semaphore in a list. */
+struct semaphore_elem 
+{
+  // struct pq_elem elem;
+  struct list_elem elem;
+  struct semaphore semaphore;         /* This semaphore. */
+  struct thread *t;                         
+};
 
 /* Optimization barrier.
 

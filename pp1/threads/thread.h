@@ -98,14 +98,16 @@ struct thread
 
     struct list_elem allelem;           /* List element for all threads list */
     /* Shared between thread.c and synch.c. */
-    struct pq_elem elem;
+    // struct pq_elem elem;
+    struct list_elem elem;
 
     //priority donation
     int donee_prio;
     int old_priority;
     int lock_num;
     struct thread *donee;
-    struct pq *waiters;
+    // struct pq *waiters;
+    struct list *waiters;
 
     // for mlfqs, fixed point format
     int nice;
@@ -144,6 +146,7 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 
+void thread_set_priority_all(void);
 int thread_get_priority (void);
 void thread_set_priority (int);
 int thread_calculate_priority(struct thread *t);
@@ -157,12 +160,15 @@ void load_avg_update(void);
 int thread_get_load_avg (void);
 
 
+bool thread_greater_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+
 /* List of all threads */
 struct list all_list;
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
-struct pq ready_list;  // moved here to be accessed in synch.c
+// struct pq ready_list;  // moved here to be accessed in synch.c
+struct list ready_list;
 
 /* List of sleeping threads */
 struct list sleep_list;
