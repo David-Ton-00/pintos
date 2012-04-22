@@ -29,7 +29,7 @@
 00000000000i[     ]   SB16 support: no
 00000000000i[     ]   USB support: no
 00000000000i[     ]   VGA extension support: vbe 
-00000000000i[MEM0 ] allocated memory at 0xb5d0c008. after alignment, vector=0xb5d0d000
+00000000000i[MEM0 ] allocated memory at 0xb5d6a008. after alignment, vector=0xb5d6b000
 00000000000i[MEM0 ] 4.00MB
 00000000000i[MEM0 ] mem block size = 0x00100000, blocks=4
 00000000000p[MEM0 ] >>PANIC<< ROM: System BIOS must end at 0xfffff

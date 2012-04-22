@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include "threads/synch.h"
 
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -95,6 +96,7 @@ struct thread
     int64_t start;                      /* Start sleeping time */
     int64_t ticks;                      /* Total sleeping time */
 
+    struct list_elem allelem;           /* List element for all threads list */
     /* Shared between thread.c and synch.c. */
     struct pq_elem elem;
 
@@ -104,6 +106,10 @@ struct thread
     int lock_num;
     struct thread *donee;
     struct pq *waiters;
+
+    // for mlfqs, fixed point format
+    int nice;
+    int recent_cpu;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -140,18 +146,27 @@ void thread_yield (void);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
+int thread_calculate_priority(struct thread *t);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
+void thread_set_recent_cpu(struct thread *);
+void thread_set_recent_cpu_all(void);
 int thread_get_recent_cpu (void);
+void load_avg_update(void);
 int thread_get_load_avg (void);
 
+
+/* List of all threads */
+struct list all_list;
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 struct pq ready_list;  // moved here to be accessed in synch.c
 
-/* list of sleeping threads */
+/* List of sleeping threads */
 struct list sleep_list;
+
+int load_avg; // fixed point format
 
 #endif /* threads/thread.h */
