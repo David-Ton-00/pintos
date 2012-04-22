@@ -129,21 +129,17 @@ thread_tick (void)
 {
   struct thread *curr = thread_current ();
 
-  if (thread_mlfqs)
-    {
-      if (strcmp(curr->name, "idle"))
-	curr->recent_cpu = add_fix_n(curr->recent_cpu, 1);
-      if (timer_ticks() % TIMER_FREQ == 0)
-	{
-	  load_avg_update();
-	  thread_set_recent_cpu_all();
-	}
 
-      if (timer_ticks() % 4 == 0)
-	{
-	  thread_set_priority_all();
-	}
-    }
+  if (thread_mlfqs)
+      {
+        if (strcmp(curr->name, "idle"))
+          curr->recent_cpu = add_fix_n(curr->recent_cpu, 1);
+
+        if (timer_ticks() % TIMER_FREQ == 0)
+            load_avg_update();
+
+       }
+
 
   struct list_elem *le;
   for (le = sleep_list.head.next; le->next != NULL; )
@@ -162,7 +158,6 @@ thread_tick (void)
     }
 
   /* Update statistics. */
-
   if (!strcmp(curr->name, "idle"))
     idle_ticks++;
 #ifdef USERPROG
@@ -174,10 +169,11 @@ thread_tick (void)
       kernel_ticks++;
     }
 
+
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     {
-      intr_yield_on_return ();
+         intr_yield_on_return ();
     }
 
 }
@@ -293,6 +289,8 @@ thread_unblock (struct thread *t)
    * the behavior of switch_thread is quite bizarre here
    */
 
+  if (timer_ticks() % TIMER_FREQ == 0)
+           thread_set_recent_cpu_all();
   if (strcmp(curr->name, "idle"))
     if (!intr_context() && curr->priority <= t->priority)
       thread_yield();
@@ -301,6 +299,7 @@ thread_unblock (struct thread *t)
 }
 
 /* Returns the name of the running thread. */
+
 const char *
 thread_name (void) 
 {
@@ -364,6 +363,16 @@ thread_yield (void)
 
   old_level = intr_disable ();
 
+  if (thread_mlfqs)
+    {
+
+      if (timer_ticks() % 4 == 0)
+        thread_set_priority_all();
+
+
+      if (timer_ticks() % TIMER_FREQ == 0)
+               thread_set_recent_cpu_all();
+    }
 
   if (strcmp(curr->name, "idle"))
     {
