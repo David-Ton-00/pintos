@@ -44,3 +44,6 @@ priority queue is not fit for round-robin scheduling
 2012-04-23
 some test fails in some occassion while passes in others
 mlfqs-recent-1 still fails 
+
+2012-04-23
+all the problem boils down to that I forgot to delete a thread fron all_list when it exits
