@@ -38,3 +38,4 @@ mkdir with-dbg &&
         make &&
         cp bochs $DSTDIR/bin/bochs-dbg &&
         cd ..
+

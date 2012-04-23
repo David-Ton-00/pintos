@@ -5,7 +5,7 @@ Requirements
 
 1. Alarm Clock
 
-Reimplement timer_sleep(), defined in "devices/timer.c". Although a working implementation is provided, it "busy waits", that is, it spins in a loop checkign the current time and calling thread_yield() until enough time has gone by. Reimplement is to avoid busy waiting.
+Reimplement timer_sleep(), defined in "devices/timer.c". Although a working implementation is provided, it "busy waits", that is, it spins in a loop checking the current time and calling thread_yield() until enough time has gone by. Reimplement is to avoid busy waiting.
 
 2. Priority Scheduling
 

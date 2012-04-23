@@ -93,7 +93,6 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init(&all_list);
-  // pq_init(&ready_list);
   list_init(&ready_list);
   list_init (&sleep_list);
 
@@ -130,20 +129,20 @@ thread_tick (void)
   struct thread *curr = thread_current ();
 
   if (thread_mlfqs)
-          {
-            if (strcmp(curr->name, "idle"))
-              curr->recent_cpu = add_fix_n(curr->recent_cpu, 1);
+    {
+      if (strcmp(curr->name, "idle"))
+	curr->recent_cpu = add_fix_n(curr->recent_cpu, 1);
 
 
-            if (timer_ticks() % TIMER_FREQ == 0)
-               {
-                load_avg_update();
-                thread_set_recent_cpu_all();
-               }
+      if (timer_ticks() % TIMER_FREQ == 0)
+	{
+	  load_avg_update();
+	  thread_set_recent_cpu_all();
+	}
 
-            if (thread_mlfqs && timer_ticks() % 4 == 0)
-              thread_set_priority_all();
-          }
+      if (thread_mlfqs && timer_ticks() % 4 == 0)
+	thread_set_priority_all();
+    }
 
 
   struct list_elem *le;
@@ -178,7 +177,7 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     {
-       intr_yield_on_return ();
+      intr_yield_on_return ();
     }
 
 }
@@ -348,24 +347,24 @@ thread_exit (void)
 #endif
 
   /* Just set our status to dying and schedule another process.
-       We will be destroyed during the call to schedule_tail(). */
-    intr_disable ();
-    struct thread *curr = thread_current();
-    curr->status = THREAD_DYING;
-    list_remove(&curr->allelem);
-    schedule ();
-    NOT_REACHED ();
-  }
+     We will be destroyed during the call to schedule_tail(). */
+  intr_disable ();
+  struct thread *curr = thread_current();
+  curr->status = THREAD_DYING;
+  list_remove(&curr->allelem);
+  schedule ();
+  NOT_REACHED ();
+}
 
-  /* Yields the CPU.  The current thread is not put to sleep and
-     may be scheduled again immediately at the scheduler's whim. */
-  void
-  thread_yield (void)
-  {
-    struct thread *curr = thread_current ();
-    enum intr_level old_level;
+/* Yields the CPU.  The current thread is not put to sleep and
+   may be scheduled again immediately at the scheduler's whim. */
+void
+thread_yield (void)
+{
+  struct thread *curr = thread_current ();
+  enum intr_level old_level;
 
-    ASSERT (!intr_context ());
+  ASSERT (!intr_context ());
 
 
 
@@ -375,7 +374,6 @@ thread_exit (void)
 
   if (curr != idle_thread)
     {
-      // max_heap_insert(&ready_list, &curr->elem, curr->priority);
       list_insert_ordered(&ready_list, &curr->elem, thread_greater_priority, NULL);
     }
   curr->status = THREAD_READY;
@@ -395,7 +393,7 @@ thread_set_priority_all()
     {
       struct thread *t = list_entry(elem, struct thread, allelem);
       if (t != idle_thread)
-      t->priority = thread_calculate_priority(t);
+	t->priority = thread_calculate_priority(t);
     }
 
 }
@@ -414,7 +412,6 @@ thread_set_priority (int new_priority)
     curr->priority = new_priority;
   curr->old_priority = new_priority;
 
-  // if (pq_entry(heap_maximum(&ready_list), struct thread, elem)->priority > curr->priority)
   if (!intr_context() && !list_empty(&ready_list) && list_entry(list_front(&ready_list), struct thread, elem)->priority > curr->priority)
     thread_yield();
 }
@@ -476,7 +473,6 @@ load_avg_update(void)
 {
   int coefficient1 = divide2fix(n2fix(59), n2fix(60));
   int coefficient2 = divide2fix(n2fix(1), n2fix(60));
-  //  int num_of_ready = pq_size(&ready_list);
   int num_of_ready = list_size(&ready_list);
   if (thread_current() != idle_thread)
     num_of_ready++;
@@ -502,7 +498,7 @@ thread_set_recent_cpu_all(void)
     {
       struct thread *t = list_entry(elem, struct thread, allelem);
       if (t != idle_thread)
-      thread_set_recent_cpu(t);
+	thread_set_recent_cpu(t);
     }
 
 }
@@ -658,10 +654,7 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
-  /*  if (pq_empty(&ready_list))
-      return idle_thread;
-      else
-      return pq_entry(heap_extract_max(&ready_list), struct thread, elem); */
+
   if (list_empty(&ready_list))
     return idle_thread;
   else
