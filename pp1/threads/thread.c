@@ -129,16 +129,21 @@ thread_tick (void)
 {
   struct thread *curr = thread_current ();
 
-
   if (thread_mlfqs)
-      {
-        if (strcmp(curr->name, "idle"))
-          curr->recent_cpu = add_fix_n(curr->recent_cpu, 1);
+          {
+            if (strcmp(curr->name, "idle"))
+              curr->recent_cpu = add_fix_n(curr->recent_cpu, 1);
 
-        if (timer_ticks() % TIMER_FREQ == 0)
-            load_avg_update();
 
-       }
+            if (timer_ticks() % TIMER_FREQ == 0)
+               {
+                load_avg_update();
+                thread_set_recent_cpu_all();
+               }
+
+            if (thread_mlfqs && timer_ticks() % 4 == 0)
+              thread_set_priority_all();
+          }
 
 
   struct list_elem *le;
@@ -158,7 +163,7 @@ thread_tick (void)
     }
 
   /* Update statistics. */
-  if (!strcmp(curr->name, "idle"))
+  if (curr != idle_thread)
     idle_ticks++;
 #ifdef USERPROG
   else if (curr->pagedir != NULL)
@@ -173,7 +178,7 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     {
-         intr_yield_on_return ();
+       intr_yield_on_return ();
     }
 
 }
@@ -289,9 +294,8 @@ thread_unblock (struct thread *t)
    * the behavior of switch_thread is quite bizarre here
    */
 
-  if (timer_ticks() % TIMER_FREQ == 0)
-           thread_set_recent_cpu_all();
-  if (strcmp(curr->name, "idle"))
+
+  if (curr != idle_thread)
     if (!intr_context() && curr->priority <= t->priority)
       thread_yield();
 
@@ -344,37 +348,32 @@ thread_exit (void)
 #endif
 
   /* Just set our status to dying and schedule another process.
-     We will be destroyed during the call to schedule_tail(). */
-  intr_disable ();
-  thread_current ()->status = THREAD_DYING;
-  schedule ();
-  NOT_REACHED ();
-}
+       We will be destroyed during the call to schedule_tail(). */
+    intr_disable ();
+    struct thread *curr = thread_current();
+    curr->status = THREAD_DYING;
+    list_remove(&curr->allelem);
+    schedule ();
+    NOT_REACHED ();
+  }
 
-/* Yields the CPU.  The current thread is not put to sleep and
-   may be scheduled again immediately at the scheduler's whim. */
-void
-thread_yield (void) 
-{
-  struct thread *curr = thread_current ();
-  enum intr_level old_level;
+  /* Yields the CPU.  The current thread is not put to sleep and
+     may be scheduled again immediately at the scheduler's whim. */
+  void
+  thread_yield (void)
+  {
+    struct thread *curr = thread_current ();
+    enum intr_level old_level;
 
-  ASSERT (!intr_context ());
+    ASSERT (!intr_context ());
+
+
 
   old_level = intr_disable ();
 
-  if (thread_mlfqs)
-    {
-
-      if (timer_ticks() % 4 == 0)
-        thread_set_priority_all();
 
 
-      if (timer_ticks() % TIMER_FREQ == 0)
-               thread_set_recent_cpu_all();
-    }
-
-  if (strcmp(curr->name, "idle"))
+  if (curr != idle_thread)
     {
       // max_heap_insert(&ready_list, &curr->elem, curr->priority);
       list_insert_ordered(&ready_list, &curr->elem, thread_greater_priority, NULL);
@@ -388,13 +387,17 @@ thread_yield (void)
 void 
 thread_set_priority_all()
 {
+  if (list_empty(&all_list))
+    return;
+
   struct list_elem *elem;
-  for (elem = all_list.head.next; elem->next != NULL; elem = elem->next)
+  for (elem = list_front(&all_list); elem != list_tail(&all_list); elem = list_next(elem))
     {
       struct thread *t = list_entry(elem, struct thread, allelem);
-      if (strcmp(t->name, "idle"))
-	t->priority = thread_calculate_priority(t);
+      if (t != idle_thread)
+      t->priority = thread_calculate_priority(t);
     }
+
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
@@ -403,13 +406,14 @@ thread_set_priority (int new_priority)
 {
   ASSERT(new_priority <= PRI_MAX && new_priority >= PRI_MIN);
   struct thread *curr = thread_current ();
+  if (thread_mlfqs || !strcmp(curr->name, "idle"))
+    return;
+
   // priority won't be set until donation is released
-  if (strcmp(curr->name, "idle"))
-    {
-      if (curr->priority <= curr->old_priority)
-	curr->priority = new_priority;
-      curr->old_priority = new_priority;
-    }
+  if (curr->priority <= curr->old_priority)
+    curr->priority = new_priority;
+  curr->old_priority = new_priority;
+
   // if (pq_entry(heap_maximum(&ready_list), struct thread, elem)->priority > curr->priority)
   if (!intr_context() && !list_empty(&ready_list) && list_entry(list_front(&ready_list), struct thread, elem)->priority > curr->priority)
     thread_yield();
@@ -454,8 +458,9 @@ thread_set_nice (int nice)
   else if (nice < -20)
     nice = -20;
 
-  thread_current()->nice = n2fix(nice);
-  thread_set_priority(thread_calculate_priority(thread_current()));
+  struct thread *curr = thread_current();
+  curr->nice = n2fix(nice);
+  thread_set_priority(thread_calculate_priority(curr));
 }
 
 /* Returns the current thread's nice value. */
@@ -489,12 +494,15 @@ thread_get_load_avg (void)
 void
 thread_set_recent_cpu_all(void)
 {
+  if (list_empty(&all_list))
+    return;
+
   struct list_elem *elem;
-  for (elem = all_list.head.next; elem->next != NULL; elem = elem->next)
+  for (elem = list_front(&all_list); elem != list_tail(&all_list); elem = list_next(elem))
     {
       struct thread *t = list_entry(elem, struct thread, allelem);
-      if (strcmp(t->name, "idle"))
-        thread_set_recent_cpu(t);
+      if (t != idle_thread)
+      thread_set_recent_cpu(t);
     }
 
 }
@@ -609,8 +617,9 @@ init_thread (struct thread *t, const char *name, int priority)
     }
   else
     {
-      t->nice = thread_current()->nice;
-      t->recent_cpu = thread_current()->recent_cpu;
+      struct thread *curr = thread_current();
+      t->nice = curr->nice;
+      t->recent_cpu = curr->recent_cpu;
     }
 
   if (thread_mlfqs && strcmp(t->name, "idle"))
@@ -715,6 +724,7 @@ schedule_tail (struct thread *prev)
 static void
 schedule (void) 
 {
+
   struct thread *curr = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
@@ -722,6 +732,8 @@ schedule (void)
   ASSERT (intr_get_level () == INTR_OFF);
   ASSERT (curr->status != THREAD_RUNNING);
   ASSERT (is_thread (next));
+
+
 
   if (curr != next)
     prev = switch_threads (curr, next);
