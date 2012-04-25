@@ -130,7 +130,7 @@ thread_tick (void)
 
   if (thread_mlfqs)
     {
-      if (strcmp(curr->name, "idle"))
+      if (curr != idle_thread)
 	curr->recent_cpu = add_fix_n(curr->recent_cpu, 1);
 
 
@@ -280,7 +280,6 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
 
-  //  max_heap_insert(&ready_list, &t->elem, t->priority);
   list_insert_ordered(&ready_list, &t->elem, thread_greater_priority, NULL);
   t->status = THREAD_READY;
 
