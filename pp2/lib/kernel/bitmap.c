@@ -9,7 +9,7 @@
 #endif
 
 /* Element type.
-n
+
    This must be an unsigned integer type at least as wide as int.
 
    Each bit represents one bit in the bitmap.

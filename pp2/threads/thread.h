@@ -4,14 +4,9 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "threads/synch.h"
 
-#define NAME_LENGTH 100
-
-#ifdef USERPROG
-#define CHILDREN_MAX 30 //can't be too large
-#define OPEN_MAX 128
-#endif
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -40,42 +35,42 @@ typedef int tid_t;
    thread's kernel stack, which grows downward from the top of
    the page (at offset 4 kB).  Here's an illustration:
 
-        4 kB +---------------------------------+
-             |          kernel stack           |
-             |                |                |
-             |                |                |
-             |                V                |
-             |         grows downward          |
-             |                                 |
-             |                                 |
-             |                                 |
-             |                                 |
-             |                                 |
-             |                                 |
-             |                                 |
-             |                                 |
-             +---------------------------------+
-             |              magic              |
-             |                :                |
-             |                :                |
-             |               name              |
-             |              status             |
-        0 kB +---------------------------------+
+   4 kB +---------------------------------+
+   |          kernel stack           |
+   |                |                |
+   |                |                |
+   |                V                |
+   |         grows downward          |
+   |                                 |
+   |                                 |
+   |                                 |
+   |                                 |
+   |                                 |
+   |                                 |
+   |                                 |
+   |                                 |
+   +---------------------------------+
+   |              magic              |
+   |                :                |
+   |                :                |
+   |               name              |
+   |              status             |
+   0 kB +---------------------------------+
 
    The upshot of this is twofold:
 
-      1. First, `struct thread' must not be allowed to grow too
-         big.  If it does, then there will not be enough room for
-         the kernel stack.  Our base `struct thread' is only a
-         few bytes in size.  It probably should stay well under 1
-         kB.
+   1. First, `struct thread' must not be allowed to grow too
+   big.  If it does, then there will not be enough room for
+   the kernel stack.  Our base `struct thread' is only a
+   few bytes in size.  It probably should stay well under 1
+   kB.
 
-      2. Second, kernel stacks must not be allowed to grow too
-         large.  If a stack overflows, it will corrupt the thread
-         state.  Thus, kernel functions should not allocate large
-         structures or arrays as non-static local variables.  Use
-         dynamic allocation with malloc() or palloc_get_page()
-         instead.
+   2. Second, kernel stacks must not be allowed to grow too
+   large.  If a stack overflows, it will corrupt the thread
+   state.  Thus, kernel functions should not allocate large
+   structures or arrays as non-static local variables.  Use
+   dynamic allocation with malloc() or palloc_get_page()
+   instead.
 
    The first symptom of either of these problems will probably be
    an assertion failure in thread_current(), which checks that
@@ -88,49 +83,41 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
-#ifdef USERPROG
-struct child
-  {
-      tid_t tid;
-      int exit_status;
-      int load_status;
-      struct semaphore sema_load;
-      struct semaphore sema_exit;
-      bool dead;
-  };
-
-#endif
-
-
 struct thread
-  {
-    /* Owned by thread.c. */
-    tid_t tid;                          /* Thread identifier. */
-    enum thread_status status;          /* Thread state. */
-    char name[NAME_LENGTH];                      /* Name (for debugging purposes). */
-    uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
-    struct list_elem allelem;           /* List element for all threads list. */
+{
+  /* Owned by thread.c. */
+  tid_t tid;                          /* Thread identifier. */
+  enum thread_status status;          /* Thread state. */
+  char name[16];                      /* Name (for debugging purposes). */
+  uint8_t *stack;                     /* Saved stack pointer. */
+  int priority;                       /* Priority. */
 
-    /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
+  int64_t start;                      /* Start sleeping time */
+  int64_t ticks;                      /* Total sleeping time */
+
+  struct list_elem allelem;           /* List element for all threads list */
+  /* Shared between thread.c and synch.c. */
+  struct list_elem elem;
+
+  //priority donation
+  int donee_prio;
+  int old_priority;
+  int lock_num;
+  struct thread *donee;
+  struct list *waiters;
+
+  // for mlfqs, fixed point format
+  int nice;
+  int recent_cpu;
 
 #ifdef USERPROG
-    /* Owned by userprog/process.c. */
-    char file_name[NAME_LENGTH];       //without arguments
-    uint32_t *pagedir;                  /* Page directory. */
-    int fd;
-    struct file * open_file[OPEN_MAX];
-    struct child children_list[CHILDREN_MAX];
-    int children_num;
-    struct thread *father;
-    struct semaphore *sema_load;//point to sema in struct child of its father
-    struct semaphore *sema_exit;
+  /* Owned by userprog/process.c. */
+  uint32_t *pagedir;                  /* Page directory. */
 #endif
 
-    /* Owned by thread.c. */
-    unsigned magic;                     /* Detects stack overflow. */
-  };
+  /* Owned by thread.c. */
+  unsigned magic;                     /* Detects stack overflow. */
+};
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -156,16 +143,32 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 
-/* Performs some operation on thread t, given auxiliary data AUX. */
-typedef void thread_action_func (struct thread *t, void *aux);
-void thread_foreach (thread_action_func *, void *);
-
+void thread_set_priority_all(void);
 int thread_get_priority (void);
 void thread_set_priority (int);
+int thread_calculate_priority(struct thread *t);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
+void thread_set_recent_cpu(struct thread *);
+void thread_set_recent_cpu_all(void);
 int thread_get_recent_cpu (void);
+void load_avg_update(void);
 int thread_get_load_avg (void);
+
+
+bool thread_greater_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+
+/* List of all threads */
+struct list all_list;
+
+/* List of processes in THREAD_READY state, that is, processes
+   that are ready to run but not actually running. */
+struct list ready_list;
+
+/* List of sleeping threads */
+struct list sleep_list;
+
+int load_avg; // fixed point format
 
 #endif /* threads/thread.h */

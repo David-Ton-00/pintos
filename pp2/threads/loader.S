@@ -46,7 +46,7 @@
 #### When the BIOS runs, it loads this code at physical address
 #### 0x7c00-0x7e00 (512 bytes).  Then it jumps to the beginning of it,
 #### in real mode.  This code switches into protected mode (32-bit
-#### mode) so that all of memory can accessed, loads the kernel into
+#### mode) so that all of memory can be accessed, loads the kernel into
 #### memory, and jumps to the first byte of the kernel, where start.S
 #### is linked.
 	
@@ -304,7 +304,7 @@ read_sector:
 gdt:
 	.quad 0x0000000000000000	# null seg
 	.quad 0x00cf9a000000ffff	# code seg
-	.quad 0x00cf92000000ffff        # data seg
+	.quad 0x00cf92000000ffff    # data seg
 	
 gdtdesc:
 	.word	0x17			# sizeof (gdt) - 1

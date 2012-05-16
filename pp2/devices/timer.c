@@ -28,7 +28,6 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
-static void real_time_delay (int64_t num, int32_t denom);
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -93,79 +92,48 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
-/* Sleeps for approximately TICKS timer ticks.  Interrupts must
-   be turned on. */
+/* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+
+
+  struct thread *t = thread_current();
+  if (timer_elapsed (start) < ticks)
+    {
+      t->start = start;
+      t->ticks = ticks;
+
+      list_push_back(&sleep_list, &t->elem);
+
+      enum intr_level old_level = intr_disable();
+      thread_block();
+      intr_set_level(old_level);
+    }
 }
 
-/* Sleeps for approximately MS milliseconds.  Interrupts must be
-   turned on. */
+/* Suspends execution for approximately MS milliseconds. */
 void
 timer_msleep (int64_t ms) 
 {
   real_time_sleep (ms, 1000);
 }
 
-/* Sleeps for approximately US microseconds.  Interrupts must be
-   turned on. */
+/* Suspends execution for approximately US microseconds. */
 void
 timer_usleep (int64_t us) 
 {
   real_time_sleep (us, 1000 * 1000);
 }
 
-/* Sleeps for approximately NS nanoseconds.  Interrupts must be
-   turned on. */
+/* Suspends execution for approximately NS nanoseconds. */
 void
 timer_nsleep (int64_t ns) 
 {
   real_time_sleep (ns, 1000 * 1000 * 1000);
-}
-
-/* Busy-waits for approximately MS milliseconds.  Interrupts need
-   not be turned on.
-
-   Busy waiting wastes CPU cycles, and busy waiting with
-   interrupts off for the interval between timer ticks or longer
-   will cause timer ticks to be lost.  Thus, use timer_msleep()
-   instead if interrupts are enabled. */
-void
-timer_mdelay (int64_t ms) 
-{
-  real_time_delay (ms, 1000);
-}
-
-/* Sleeps for approximately US microseconds.  Interrupts need not
-   be turned on.
-
-   Busy waiting wastes CPU cycles, and busy waiting with
-   interrupts off for the interval between timer ticks or longer
-   will cause timer ticks to be lost.  Thus, use timer_usleep()
-   instead if interrupts are enabled. */
-void
-timer_udelay (int64_t us) 
-{
-  real_time_delay (us, 1000 * 1000);
-}
-
-/* Sleeps execution for approximately NS nanoseconds.  Interrupts
-   need not be turned on.
-
-   Busy waiting wastes CPU cycles, and busy waiting with
-   interrupts off for the interval between timer ticks or longer
-   will cause timer ticks to be lost.  Thus, use timer_nsleep()
-   instead if interrupts are enabled.*/
-void
-timer_ndelay (int64_t ns) 
-{
-  real_time_delay (ns, 1000 * 1000 * 1000);
 }
 
 /* Prints timer statistics. */
@@ -222,7 +190,7 @@ real_time_sleep (int64_t num, int32_t denom)
 {
   /* Convert NUM/DENOM seconds into timer ticks, rounding down.
           
-        (NUM / DENOM) s          
+     (NUM / DENOM) s          
      ---------------------- = NUM * TIMER_FREQ / DENOM ticks. 
      1 s / TIMER_FREQ ticks
   */
@@ -239,17 +207,10 @@ real_time_sleep (int64_t num, int32_t denom)
   else 
     {
       /* Otherwise, use a busy-wait loop for more accurate
-         sub-tick timing. */
-      real_time_delay (num, denom); 
+         sub-tick timing.  We scale the numerator and denominator
+         down by 1000 to avoid the possibility of overflow. */
+      ASSERT (denom % 1000 == 0);
+      busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
     }
 }
 
-/* Busy-wait for approximately NUM/DENOM seconds. */
-static void
-real_time_delay (int64_t num, int32_t denom)
-{
-  /* Scale the numerator and denominator down by 1000 to avoid
-     the possibility of overflow. */
-  ASSERT (denom % 1000 == 0);
-  busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
-}

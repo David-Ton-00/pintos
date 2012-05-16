@@ -15,14 +15,11 @@
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/palloc.h"
-#include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static char **push_args_onto_stack (const char* file_name);
-
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -39,36 +36,21 @@ process_execute (const char *file_name)
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
+  strlcpy (fn_copy, file_name, PGSIZE);
 
-  unsigned i = 0;
-  while (i < strlen (file_name))
-    {
-      char *start = (char *)((uint32_t)file_name + i);
-      while (*(file_name + i) != ' ')
-           i++;
-      *(fn_copy + i) = '\0';
-      strlcpy (fn_copy + ((uint32_t)start - (uint32_t)file_name), start, i - ((uint32_t)start - (uint32_t)file_name) + 1);
-      
-      while (*(file_name + i) == ' ')
-           i++;
-    } 
-
- 
   /* Create a new thread to execute FILE_NAME. */
-
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
 }
 
-/* A thread function that loads a user process and starts it
+/* A thread function that loads a user process and makes it start
    running. */
 static void
-start_process (void *file_name_)
+start_process (void *fname)
 {
-  char *file_name = file_name_;
+  char *file_name = fname;
   struct intr_frame if_;
   bool success;
 
@@ -81,15 +63,9 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
- 
-  struct thread *cur = thread_current ();
-  struct thread *father = cur->father;
-  int i;
-  int j = find_child (&i, cur->tid, father);
-  father->children_list[j].load_status = success;
-  sema_up (cur->sema_load);
   if (!success) 
-    exit (-1);
+    thread_exit ();
+
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -110,23 +86,9 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid) 
+process_wait (tid_t child_tid UNUSED) 
 {
-     	struct thread *cur = thread_current ();
-	int exit_status;
-	int i;
-	int j = find_child (&i, child_tid, cur);
-	       
-	if (i >= cur->children_num) 
-	   return -1;
-	else
-	   {
-	       sema_down (&cur->children_list[j].sema_exit);
-	       exit_status = cur->children_list[j].exit_status;
-	       cur->children_list[j].dead = true;
-	       cur->children_num--;
-	       return exit_status;
-	   }
+  return -1;
 }
 
 /* Free the current process's resources. */
@@ -344,7 +306,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
 
   /* Start address. */
-//  printf ("entry:%x\n", ehdr.e_entry);
   *eip = (void (*) (void)) ehdr.e_entry;
 
   success = true;
@@ -364,65 +325,42 @@ static bool install_page (void *upage, void *kpage, bool writable);
 static bool
 validate_segment (const struct Elf32_Phdr *phdr, struct file *file) 
 {
-   /* p_offset and p_vaddr must have the same page offset. */
+  /* p_offset and p_vaddr must have the same page offset. */
   if ((phdr->p_offset & PGMASK) != (phdr->p_vaddr & PGMASK)) 
-   {
-	   printf ("p_offset and p_vaddr don't congruent module pg_size\n");
-       return false; 
-   }
+    return false; 
+
   /* p_offset must point within FILE. */
   if (phdr->p_offset > (Elf32_Off) file_length (file)) 
-   {
-	   printf("p_offset overflows\n");
-       return false;
-   }
+    return false;
 
   /* p_memsz must be at least as big as p_filesz. */
   if (phdr->p_memsz < phdr->p_filesz) 
-   {
-       printf ("p_memsz < p_filesz\n");
-       return false; 
-    }
+    return false; 
+
   /* The segment must not be empty. */
   if (phdr->p_memsz == 0)
-    {
-		printf ("empty segment\n");
-		return false;
-    }
-    
+    return false;
+  
   /* The virtual memory region must both start and end within the
      user address space range. */
   if (!is_user_vaddr ((void *) phdr->p_vaddr))
-    {
-	    printf ("p_vaddr doesn't start within user address space range\n");   
-        return false;
-    }
+    return false;
   if (!is_user_vaddr ((void *) (phdr->p_vaddr + phdr->p_memsz)))
-    {
-		printf ("P_vaddr doesn't end within user address space range\n");
-		return false;
-	}
+    return false;
 
   /* The region cannot "wrap around" across the kernel virtual
      address space. */
   if (phdr->p_vaddr + phdr->p_memsz < phdr->p_vaddr)
-    {
-		printf ("wrap around\n");
-		return false;
-	}
+    return false;
 
   /* Disallow mapping page 0.
      Not only is it a bad idea to map page 0, but if we allowed
      it then user code that passed a null pointer to system calls
      could quite likely panic the kernel by way of null pointer
      assertions in memcpy(), etc. */
- 
-  /*  if (phdr->p_vaddr < PGSIZE)
-    {
-		printf ("map 0\n");
-		return false;
-    }
-  */
+  if (phdr->p_vaddr < PGSIZE)
+    return false;
+
   /* It's okay. */
   return true;
 }
@@ -452,7 +390,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
-      /* Calculate how to fill this page.
+      /* Do calculate how to fill this page.
          We will read PAGE_READ_BYTES bytes from FILE
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
@@ -493,82 +431,17 @@ setup_stack (void **esp)
 {
   uint8_t *kpage;
   bool success = false;
-  struct thread *t = thread_current ();
-  char *file_name = t->name;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-	     *esp = push_args_onto_stack (file_name);
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
   return success;
-}
-
-static char **
-push_args_onto_stack (const char *file_name)
-{
-       int offset = strlen (file_name);
-       char *fn_iter = (char *)((uint32_t)file_name + offset);
-       char *page_iter = PHYS_BASE - 1; //top of the page 
-       char **sp = (char **) page_iter;
-  
-       while ((offset + 1) % 4 != 0)
-          offset++;
-       sp = (char**)((uint32_t) (sp - (offset + 1) / 4) + 1);
-       memset (sp, 0, offset / 4);
-  
-       char *sentinel = "\0";
-       sp = sp - 1;
-       strlcpy (sp, sentinel, sizeof sentinel);
-  
-       int in = false;
-       uint32_t count = 0;
-       uint32_t argc = 0;
-       while (fn_iter != file_name)
-         {
-	        fn_iter--;
-            if (*fn_iter != ' ')
-	          {
-		        page_iter--;
-	            if (!in)
-                       {
-				   in = true;
-				   *(page_iter + 1) = '\0';
-				   argc++;
-			}		   
-		        *page_iter = *fn_iter;
-	            count++;
-	          }
-            else
-	          {
-	            if (in)
-	             {
-	               in = false;    
-                   sp = sp - 1;
-	               *sp = page_iter--;
-	               count = 0; 
-	             }
-	          } 
-         }
-       sp = sp - 1;
-       *sp = page_iter;
-  
-  
-       char **fn_addr = sp;
-       sp = sp - 1;
-       memcpy (sp, &fn_addr, sizeof(fn_addr));
-        
-       sp = sp - 1;
-       memcpy (sp, &argc, sizeof(argc));
-      
-       sp = sp - 1;
-       memset (sp, 0, 4 * sizeof(char));
-      
-       return sp;
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel

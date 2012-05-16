@@ -1,4 +1,4 @@
-/* Measures the correctness of the "nice" implementation.
+ 	 /* Measures the correctness of the "nice" implementation.
 
    The "fair" tests run either 2 or 20 threads all niced to 0.
    The threads should all receive approximately the same number
@@ -114,9 +114,11 @@ load_thread (void *ti_)
 
   thread_set_nice (ti->nice);
   timer_sleep (sleep_time - timer_elapsed (ti->start_time));
+
   while (timer_elapsed (ti->start_time) < spin_time) 
     {
       int64_t cur_time = timer_ticks ();
+
       if (cur_time != last_time)
         ti->tick_count++;
       last_time = cur_time;
