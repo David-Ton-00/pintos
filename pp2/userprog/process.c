@@ -20,7 +20,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static char **push_args_onto_stack(const char *file_name);
+static char *push_args_onto_stack(const char *file_name);
 static size_t tokenslen (const char *string);
 
 /* Starts a new thread running a user program loaded from
@@ -175,37 +175,37 @@ typedef uint16_t Elf32_Half;
 /* Executable header.  See [ELF1] 1-4 to 1-8.
    This appears at the very beginning of an ELF binary. */
 struct Elf32_Ehdr
-  {
-    unsigned char e_ident[16];
-    Elf32_Half    e_type;
-    Elf32_Half    e_machine;
-    Elf32_Word    e_version;
-    Elf32_Addr    e_entry;
-    Elf32_Off     e_phoff;
-    Elf32_Off     e_shoff;
-    Elf32_Word    e_flags;
-    Elf32_Half    e_ehsize;
-    Elf32_Half    e_phentsize;
-    Elf32_Half    e_phnum;
-    Elf32_Half    e_shentsize;
-    Elf32_Half    e_shnum;
-    Elf32_Half    e_shstrndx;
-  };
+{
+  unsigned char e_ident[16];
+  Elf32_Half    e_type;
+  Elf32_Half    e_machine;
+  Elf32_Word    e_version;
+  Elf32_Addr    e_entry;
+  Elf32_Off     e_phoff;
+  Elf32_Off     e_shoff;
+  Elf32_Word    e_flags;
+  Elf32_Half    e_ehsize;
+  Elf32_Half    e_phentsize;
+  Elf32_Half    e_phnum;
+  Elf32_Half    e_shentsize;
+  Elf32_Half    e_shnum;
+  Elf32_Half    e_shstrndx;
+};
 
 /* Program header.  See [ELF1] 2-2 to 2-4.
    There are e_phnum of these, starting at file offset e_phoff
    (see [ELF1] 1-6). */
 struct Elf32_Phdr
-  {
-    Elf32_Word p_type;
-    Elf32_Off  p_offset;
-    Elf32_Addr p_vaddr;
-    Elf32_Addr p_paddr;
-    Elf32_Word p_filesz;
-    Elf32_Word p_memsz;
-    Elf32_Word p_flags;
-    Elf32_Word p_align;
-  };
+{
+  Elf32_Word p_type;
+  Elf32_Off  p_offset;
+  Elf32_Addr p_vaddr;
+  Elf32_Addr p_paddr;
+  Elf32_Word p_filesz;
+  Elf32_Word p_memsz;
+  Elf32_Word p_flags;
+  Elf32_Word p_align;
+};
 
 /* Values for p_type.  See [ELF1] 2-3. */
 #define PT_NULL    0            /* Ignore. */
@@ -283,7 +283,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       if (file_read (file, &phdr, sizeof phdr) != sizeof phdr)
 	{
 	  printf("1");
-        goto done;
+	  goto done;
 	}
       file_ofs += sizeof phdr;
       switch (phdr.p_type) 
@@ -356,44 +356,65 @@ static bool install_page (void *upage, void *kpage, bool writable);
    FILE and returns true if so, false otherwise. */
 static bool
 validate_segment (const struct Elf32_Phdr *phdr, struct file *file) 
-{
-  /* p_offset and p_vaddr must have the same page offset. */
+{   /* p_offset and p_vaddr must have the same page offset. */
   if ((phdr->p_offset & PGMASK) != (phdr->p_vaddr & PGMASK)) 
-    return false; 
-
+    {
+      printf ("p_offset and p_vaddr don't congruent module pg_size\n");
+      return false; 
+    }
   /* p_offset must point within FILE. */
-  printf("%d:%d\n", phdr->p_offset, file_length(file));
   if (phdr->p_offset > (Elf32_Off) file_length (file)) 
-    return false;
+    {
+      printf("p_offset overflows\n");
+      return false;
+    }
 
   /* p_memsz must be at least as big as p_filesz. */
   if (phdr->p_memsz < phdr->p_filesz) 
-    return false; 
-
+    {
+      printf ("p_memsz < p_filesz\n");
+      return false; 
+    }
   /* The segment must not be empty. */
   if (phdr->p_memsz == 0)
-    return false;
-  
+    {
+      printf ("empty segment\n");
+      return false;
+    }
+    
   /* The virtual memory region must both start and end within the
      user address space range. */
   if (!is_user_vaddr ((void *) phdr->p_vaddr))
-    return false;
+    {
+      printf ("p_vaddr doesn't start within user address space range\n");   
+      return false;
+    }
   if (!is_user_vaddr ((void *) (phdr->p_vaddr + phdr->p_memsz)))
-    return false;
+    {
+      printf ("P_vaddr doesn't end within user address space range\n");
+      return false;
+    }
 
   /* The region cannot "wrap around" across the kernel virtual
      address space. */
   if (phdr->p_vaddr + phdr->p_memsz < phdr->p_vaddr)
-    return false;
+    {
+      printf ("wrap around\n");
+      return false;
+    }
 
   /* Disallow mapping page 0.
      Not only is it a bad idea to map page 0, but if we allowed
      it then user code that passed a null pointer to system calls
      could quite likely panic the kernel by way of null pointer
      assertions in memcpy(), etc. */
-  if (phdr->p_vaddr < PGSIZE)
-    return false;
-
+ 
+  /* if (phdr->p_vaddr < PGSIZE) */
+  /*   { */
+  /*     printf ("map 0\n"); */
+  /*     return false; */
+  /*   } */
+  
   /* It's okay. */
   return true;
 }
@@ -402,10 +423,10 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
    UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
    memory are initialized, as follows:
 
-        - READ_BYTES bytes at UPAGE must be read from FILE
-          starting at offset OFS.
+   - READ_BYTES bytes at UPAGE must be read from FILE
+   starting at offset OFS.
 
-        - ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed.
+   - ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed.
 
    The pages initialized by this function must be writable by the
    user process if WRITABLE is true, read-only otherwise.
@@ -477,7 +498,7 @@ setup_stack (void **esp, const char *file_name)
   return success;
 }
 
-static char **
+static char *
 push_args_onto_stack(const char *file_name)
 {
   int len = tokenslen(file_name);
