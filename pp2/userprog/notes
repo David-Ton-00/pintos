@@ -1,0 +1,7 @@
+run_actions(argv) => run_task(argv)
+                       task = argv[1] => process_execute(task) // "filename args"
+                                            thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+                                         start_process(filename)
+                                            load
+                                              setup_stack()
+		

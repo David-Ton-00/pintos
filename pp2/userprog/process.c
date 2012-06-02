@@ -20,6 +20,8 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static char **push_args_onto_stack(const char *file_name);
+static size_t tokenslen (const char *string);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -36,12 +38,37 @@ process_execute (const char *file_name)
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
+  //  strlcpy (fn_copy, file_name, PGSIZE);
 
+  // tokenize file_name and its arguments
+  char *token, *save_ptr;
+  size_t len;
+  char *head = fn_copy;
+  int size = strlen(file_name) + 1;
+  char *fname = (char*)malloc(size);
+  strlcpy(fname, file_name, size);
+
+  token = strtok_r(fname, " ", &save_ptr);
+  len = strlcpy(fn_copy, token, PGSIZE);
+
+  fn_copy = fn_copy + len + 1; // move to the next position of '\0'
+
+  token = strtok_r(NULL, " ", &save_ptr);
+  while (token != NULL)
+    {
+      len = strlcpy(fn_copy, token, PGSIZE);
+      fn_copy = fn_copy + len + 1;
+      token = strtok_r(NULL, " ", &save_ptr);
+    }
+
+  fn_copy = '\0'; // to mark the end of the whole string
+                  // could be helpful in setup_stack
+
+  free(fname);
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, head);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (head); 
   return tid;
 }
 
@@ -195,7 +222,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, const char *file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -250,10 +277,14 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
       if (file_ofs < 0 || file_ofs > file_length (file))
         goto done;
+
       file_seek (file, file_ofs);
 
       if (file_read (file, &phdr, sizeof phdr) != sizeof phdr)
+	{
+	  printf("1");
         goto done;
+	}
       file_ofs += sizeof phdr;
       switch (phdr.p_type) 
         {
@@ -297,12 +328,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
             }
           else
             goto done;
+        
           break;
         }
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, file_name))
     goto done;
 
   /* Start address. */
@@ -330,6 +362,7 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
     return false; 
 
   /* p_offset must point within FILE. */
+  printf("%d:%d\n", phdr->p_offset, file_length(file));
   if (phdr->p_offset > (Elf32_Off) file_length (file)) 
     return false;
 
@@ -427,7 +460,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, const char *file_name) 
 {
   uint8_t *kpage;
   bool success = false;
@@ -437,12 +470,89 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+        *esp = push_args_onto_stack(file_name);
       else
         palloc_free_page (kpage);
     }
   return success;
 }
+
+static char **
+push_args_onto_stack(const char *file_name)
+{
+  int len = tokenslen(file_name);
+  int offset = len;
+
+  // word align
+  while (offset % 4 != 0)
+    offset++;
+
+  char *sp = (char *)(PHYS_BASE) - offset + 1;
+  memset(sp, 0, offset);
+  memcpy((char *)(PHYS_BASE - len), file_name, len);
+
+  sp = sp - 4;
+  sp = '\0';
+
+  sp = sp - 4;
+
+  char *fn_iter = (char *)(PHYS_BASE - 1);
+  int i;
+  int argc = 0;
+
+  // argv[i]
+  for (i = 1; i < len; i++)
+    {
+      fn_iter -= i;
+      if (fn_iter == '\0')
+	{
+	  memset(sp, (uint32_t)(fn_iter + 1), 4);
+          sp = sp - 4;
+	  argc++;
+	}
+    }
+  memset(sp, (uint32_t)(fn_iter), 4);
+  argc++;
+
+  uint32_t argv = (uint32_t)(sp);
+
+  sp = sp - 4;
+  memset(sp, (uint32_t)(argv), 4);
+
+  sp = sp - 4;
+  memset(sp, (uint32_t)(argc), 4);
+
+  sp = sp - 4;
+  memset(sp, 0, 4);
+
+  return sp;
+}
+
+
+// calculate length of a special string
+// which consists of tokens delimited by '\0'
+// and there is an extra '\0' to mark the end of the whole string
+// the length excludes the last '\0'
+
+static size_t
+tokenslen (const char *string) 
+{
+  const char *p;
+
+  ASSERT (string != NULL);
+
+  for (p = string; ; p++)
+    {
+      if (p == '\0')
+	if (p + 1 == '\0')
+	  {
+	    p++;
+	    break;
+	  }
+    }
+  return p - string;
+}
+
 
 /* Adds a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
@@ -463,3 +573,4 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
