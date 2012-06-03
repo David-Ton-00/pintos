@@ -2,6 +2,7 @@
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,8 +21,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static char *push_args_onto_stack(const char *file_name);
-static size_t tokenslen (const char *string);
+static char **push_args_onto_stack(const char *file_name);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -60,10 +60,7 @@ process_execute (const char *file_name)
       fn_copy = fn_copy + len + 1;
       token = strtok_r(NULL, " ", &save_ptr);
     }
-
-  fn_copy = '\0'; // to mark the end of the whole string
-                  // could be helpful in setup_stack
-
+ 
   free(fname);
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, head);
@@ -408,7 +405,7 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
      it then user code that passed a null pointer to system calls
      could quite likely panic the kernel by way of null pointer
      assertions in memcpy(), etc. */
- 
+
   /* if (phdr->p_vaddr < PGSIZE) */
   /*   { */
   /*     printf ("map 0\n"); */
@@ -491,88 +488,80 @@ setup_stack (void **esp, const char *file_name)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = push_args_onto_stack(file_name);
+        {
+          *esp = push_args_onto_stack(file_name);
+	  hex_dump(*esp, kpage, (uint32_t)(PHYS_BASE - (*esp)), true);
+	}
       else
         palloc_free_page (kpage);
     }
   return success;
 }
 
-static char *
-push_args_onto_stack(const char *file_name)
+static char **
+push_args_onto_stack (const char *file_name)
 {
-  int len = tokenslen(file_name);
-  int offset = len;
-
-  // word align
-  while (offset % 4 != 0)
+  int offset = strlen (file_name);
+  char *fn_iter = (char *)((uint32_t)file_name + offset);
+  char *page_iter = PHYS_BASE - 1; //top of the page 
+  char **sp = (char **) page_iter;
+  
+  while ((offset + 1) % 4 != 0)
     offset++;
+  sp = (char**)((uint32_t) (sp - (offset + 1) / 4) + 1);
+  memset (sp, 0, (offset + 1) / 4);
+  
+  /* sp = sp - 1; */
+  /* *sp = "\0" ; */
+  
+  char *sentinel = "\0";
+  sp = sp - 1;
+  strlcpy (sp, sentinel, sizeof sentinel);
+  
+  bool in = false;
+  uint32_t argc = 0;
 
-  char *sp = (char *)(PHYS_BASE) - offset + 1;
-  memset(sp, 0, offset);
-  memcpy((char *)(PHYS_BASE - len), file_name, len);
-
-  sp = sp - 4;
-  sp = '\0';
-
-  sp = sp - 4;
-
-  char *fn_iter = (char *)(PHYS_BASE - 1);
-  int i;
-  int argc = 0;
-
-  // argv[i]
-  for (i = 1; i < len; i++)
+  while (fn_iter != file_name)
     {
-      fn_iter -= i;
-      if (fn_iter == '\0')
+      fn_iter--;
+      if (*fn_iter != ' ')
 	{
-	  memset(sp, (uint32_t)(fn_iter + 1), 4);
-          sp = sp - 4;
-	  argc++;
+	  page_iter--;
+	  if (!in)
+	    {
+	      in = true;
+	      *(page_iter + 1) = '\0';
+	      argc++;
+	    }		   
+	  *page_iter = *fn_iter;
 	}
+      else
+	{
+	  if (in)
+	    {
+	      in = false;    
+	      sp = sp - 1;
+	      *sp = page_iter--;
+	    }
+	} 
     }
-  memset(sp, (uint32_t)(fn_iter), 4);
-  argc++;
-
-  uint32_t argv = (uint32_t)(sp);
-
-  sp = sp - 4;
-  memset(sp, (uint32_t)(argv), 4);
-
-  sp = sp - 4;
-  memset(sp, (uint32_t)(argc), 4);
-
-  sp = sp - 4;
-  memset(sp, 0, 4);
-
+  sp = sp - 1;
+  *sp = page_iter;
+  
+  
+  char **fn_addr = sp;
+  sp = sp - 1;
+  memcpy (sp, &fn_addr, sizeof(fn_addr));
+        
+  sp = sp - 1;
+  memcpy (sp, &argc, sizeof(argc));
+      
+  sp = sp - 1;
+  memset (sp, 0, 4 * sizeof(char));
+     
   return sp;
 }
 
-
-// calculate length of a special string
-// which consists of tokens delimited by '\0'
-// and there is an extra '\0' to mark the end of the whole string
-// the length excludes the last '\0'
-
-static size_t
-tokenslen (const char *string) 
-{
-  const char *p;
-
-  ASSERT (string != NULL);
-
-  for (p = string; ; p++)
-    {
-      if (p == '\0')
-	if (p + 1 == '\0')
-	  {
-	    p++;
-	    break;
-	  }
-    }
-  return p - string;
-}
 
 
 /* Adds a mapping from user virtual address UPAGE to kernel
@@ -590,7 +579,7 @@ install_page (void *upage, void *kpage, bool writable)
   struct thread *t = thread_current ();
 
   /* Verify that there's not already a page at that virtual
-     address, then map our page there. */
+     kkk     address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
