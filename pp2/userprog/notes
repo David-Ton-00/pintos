@@ -1,7 +1,23 @@
+Argument Passing
+
 run_actions(argv) => run_task(argv)
                        task = argv[1] => process_execute(task) // "filename args"
                                             thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-                                         start_process(filename)
+                                         start_process(fn_copy) 
                                             load
                                               setup_stack()
-		
+		                                 push_args_onto_stack(file_name)
+                                                    
+                                            asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory"); 
+                                            // start process, point the stack pointer to our stack frame and jump to it
+                                                _start (int argc, char *argv[]) 
+                                                   main (argc, argv)
+                                                   // we put argc and argv onto stack via setup_stack
+
+System call
+
+user C program => user process makes a system call
+                    kernel pushes syscall number, arguments on to stack // "lib/user/syscall.c"
+                       syscall-handler retrieval syscall number, arguments from stack and invoke corresponding functions // "userprog/syscall.c"
+                         
+                                    

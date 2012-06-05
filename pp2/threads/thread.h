@@ -2,11 +2,12 @@
 #define THREADS_THREAD_H
 
 #include <debug.h>
+#include <hash.h>
 #include <list.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "filesys/file.h"
 #include "threads/synch.h"
-
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -26,6 +27,13 @@ typedef int tid_t;
 #define PRI_MIN 0                       /* Lowest priority. */
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
+
+#ifdef USERPROG
+
+#define NAME_LENGTH 100
+#define OPEN_MAX 128
+
+#endif
 
 /* A kernel thread or user process.
 
@@ -113,6 +121,14 @@ struct thread
 #ifdef USERPROG
   /* Owned by userprog/process.c. */
   uint32_t *pagedir;                  /* Page directory. */
+  char file_name[NAME_LENGTH];
+  int fd;                             /* File descriptor */
+  int exit_status;                      
+  int load_status;
+  struct file *open_file[OPEN_MAX];   /* Opened file list */
+  struct hash children;               /* Children processes */
+  struct thread *parent;              /* Parent process */
+  struct hash_elem hash_elem;           /* Hash table elem */
 #endif
 
   /* Owned by thread.c. */
@@ -157,7 +173,12 @@ void load_avg_update(void);
 int thread_get_load_avg (void);
 
 
-bool thread_greater_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+bool thread_greater_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+
+/* Prototypes for hash functions */
+unsigned thread_hash(const struct hash_elem *child_elem, void *aux UNUSED);
+bool thread_less(const struct hash_elem *a_elem, const struct hash_elem *b_elem, void *aux UNUSED);
+
 
 /* List of all threads */
 struct list all_list;

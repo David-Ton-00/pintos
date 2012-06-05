@@ -630,6 +630,25 @@ init_thread (struct thread *t, const char *name, int priority)
   t->waiters = NULL;
 
   list_push_back(&all_list, &t->allelem);
+
+
+#ifdef USERPROG
+  if (strcmp(t->name, "main") && strcmp(t->name, "idle"))
+    {
+      int i;
+      for (i = 0; i < OPEN_MAX; i++)
+	t->open_file[i] = NULL;
+      t->fd = 3;  // 1 and 2 is reserved for stdin and stdout
+      t->exit_status = -1;
+      t->load_status = false;
+      hash_init(&t->children, thread_hash, thread_less, NULL);
+    
+      // link parent and child
+      struct thread *cur = thread_current();
+      t->parent = cur;
+      hash_insert(&cur->children, &t->hash_elem);
+    }
+#endif
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -750,3 +769,19 @@ allocate_tid (void)
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
+/* Returns a hash value for a thread */
+unsigned
+thread_hash(const struct hash_elem *t_, void *aux UNUSED)
+{
+  const struct thread *t = hash_entry(t_, struct thread, hash_elem);
+  return hash_int(t->tid);
+}
+
+/* Returns true if thread a precedes thread b */
+bool
+thread_less(const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED)
+{
+  const struct thread *a = hash_entry(a_, struct thread, hash_elem);
+  const struct thread *b = hash_entry(b_, struct thread, hash_elem);
+  return a->tid < b->tid;
+}

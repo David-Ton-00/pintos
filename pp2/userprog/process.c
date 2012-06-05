@@ -15,13 +15,15 @@
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
+#include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static char **push_args_onto_stack(const char *file_name);
+/* static char **push_args_onto_stack(const char *file_name); */
+static char **push_args_onto_stack (const char *file_name);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -112,6 +114,7 @@ start_process (void *fname)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  while (1) {}
   return -1;
 }
 
@@ -490,7 +493,7 @@ setup_stack (void **esp, const char *file_name)
       if (success)
         {
           *esp = push_args_onto_stack(file_name);
-	  hex_dump(*esp, kpage, (uint32_t)(PHYS_BASE - (*esp)), true);
+	  hex_dump((uintptr_t)(*esp), kpage, (uint32_t)(PHYS_BASE - *esp), true);
 	}
       else
         palloc_free_page (kpage);
@@ -498,29 +501,32 @@ setup_stack (void **esp, const char *file_name)
   return success;
 }
 
+// file_name including all the arguments
 static char **
 push_args_onto_stack (const char *file_name)
 {
-  int offset = strlen (file_name);
-  char *fn_iter = (char *)((uint32_t)file_name + offset);
-  char *page_iter = PHYS_BASE - 1; //top of the page 
-  char **sp = (char **) page_iter;
-  
+  int len = strlen(file_name);
+  int offset = len;
+  char *page_iter = PHYS_BASE - 1; // top of the page 
+  char **sp = (char **)(page_iter); // stack pointer
+
+  // word align  
   while ((offset + 1) % 4 != 0)
     offset++;
+
   sp = (char**)((uint32_t) (sp - (offset + 1) / 4) + 1);
-  memset (sp, 0, (offset + 1) / 4);
-  
-  /* sp = sp - 1; */
-  /* *sp = "\0" ; */
-  
+  memset(sp, 0, (offset + 1) / 4);
+
   char *sentinel = "\0";
   sp = sp - 1;
-  strlcpy (sp, sentinel, sizeof sentinel);
-  
+  //  strlcpy (sp, sentinel, sizeof sentinel);
+  memcpy(sp, &sentinel, sizeof sentinel);
+
   bool in = false;
   uint32_t argc = 0;
+  char *fn_iter = (char *)((uint32_t)file_name + len);
 
+  // scan from tail to head to tokenize arguments
   while (fn_iter != file_name)
     {
       fn_iter--;
@@ -545,20 +551,20 @@ push_args_onto_stack (const char *file_name)
 	    }
 	} 
     }
+
   sp = sp - 1;
   *sp = page_iter;
-  
-  
+
   char **fn_addr = sp;
   sp = sp - 1;
-  memcpy (sp, &fn_addr, sizeof(fn_addr));
-        
+  memcpy(sp, &fn_addr, sizeof fn_addr);
+
   sp = sp - 1;
-  memcpy (sp, &argc, sizeof(argc));
-      
+  memcpy(sp, &argc, sizeof argc);
+
   sp = sp - 1;
-  memset (sp, 0, 4 * sizeof(char));
-     
+  memset(sp, 0, 4 * sizeof (char));
+
   return sp;
 }
 
@@ -579,7 +585,7 @@ install_page (void *upage, void *kpage, bool writable)
   struct thread *t = thread_current ();
 
   /* Verify that there's not already a page at that virtual
-     kkk     address, then map our page there. */
+     address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
