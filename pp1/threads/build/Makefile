@@ -41,11 +41,12 @@ lib_SRC += lib/arithmetic.c
 
 # Kernel-specific library code.
 lib/kernel_SRC  = lib/kernel/debug.c	      # Debug helpers.
-lib/kernel_SRC += lib/kernel/list.c	          # Doubly-linked lists.
+lib/kernel_SRC += lib/kernel/list.c	      # Doubly-linked lists.
 lib/kernel_SRC += lib/kernel/priority_queue.c # Priority queue
 lib/kernel_SRC += lib/kernel/bitmap.c	      # Bitmaps.
-lib/kernel_SRC += lib/kernel/hash.c	          # Hash tables.
+lib/kernel_SRC += lib/kernel/hash.c	      # Hash tables.
 lib/kernel_SRC += lib/kernel/console.c	      # printf(), putchar().
+lib/kernel_SRC += lib/kernel/fix_point.c      # Fix point number
 
 # User process code.
 userprog_SRC  = userprog/process.c	# Process loading.

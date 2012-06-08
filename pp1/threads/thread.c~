@@ -288,7 +288,7 @@ thread_unblock (struct thread *t)
    * finished its work we should wait for it to block itself rather than grab cpu here
    * otherwise, in thread_yield main thread is popped from ready list but
    * switch_thread(curr, next) returns main thread(should've been idle) and idle thread continues
-   * to run and then block but main is no longer in the ready list and so the program hangs
+   * to run and then block but main is no long in the ready list and so the program hangs
    * the behavior of switch_thread is quite bizarre here
    */
 
