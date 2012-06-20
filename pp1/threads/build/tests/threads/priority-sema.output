@@ -1,27 +1,37 @@
-Writing command line to /tmp/ymfVJBzmJr.dsk...
-qemu -hda /tmp/ymfVJBzmJr.dsk -m 4 -net none -nographic -monitor null
+Writing command line to /tmp/BJakMgwn0E.dsk...
+qemu -hda /tmp/BJakMgwn0E.dsk -m 4 -net none -nographic -monitor null
 Kernel command line: -q run priority-sema
 Pintos booting with 4,096 kB RAM...
-375 pages available in kernel pool.
-374 pages available in user pool.
-Calibrating timer...  104,755,200 loops/s.
+372 pages available in kernel pool.
+372 pages available in user pool.
+Calibrating timer...  130,867,200 loops/s.
 Boot complete.
 Executing 'priority-sema':
 (priority-sema) begin
+(priority-sema) Thread priority 30 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 29 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 28 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 27 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 26 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 25 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 24 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 23 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 22 woke up.
 (priority-sema) Back in main thread.
+(priority-sema) Thread priority 21 woke up.
 (priority-sema) Back in main thread.
 (priority-sema) end
 Execution of 'priority-sema' complete.
-Timer: 22 ticks
-Thread: 0 idle ticks, 22 kernel ticks, 0 user ticks
-Console: 752 characters output
+Timer: 25 ticks
+Thread: 25 idle ticks, 0 kernel ticks, 0 user ticks
+Console: 1192 characters output
 Keyboard: 0 keys pressed
 Powering off...

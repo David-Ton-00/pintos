@@ -1,1 +1,2 @@
-qemu: terminating on signal 2 from pid 30188
+Prototype mismatch: sub main::SIGVTALRM () vs none at /home/manuzhang/git/pintos/bin/pintos line 872.
+Constant subroutine SIGVTALRM redefined at /home/manuzhang/git/pintos/bin/pintos line 864.

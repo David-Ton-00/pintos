@@ -1,10 +1,10 @@
-Writing command line to /tmp/V1jh0aIWlQ.dsk...
-qemu -hda /tmp/V1jh0aIWlQ.dsk -m 4 -net none -nographic -monitor null
+Writing command line to /tmp/trmndBIPAs.dsk...
+qemu -hda /tmp/trmndBIPAs.dsk -m 4 -net none -nographic -monitor null
 Kernel command line: -q -mlfqs run hello
 Pintos booting with 4,096 kB RAM...
-375 pages available in kernel pool.
-374 pages available in user pool.
-Calibrating timer...  104,755,200 loops/s.
+372 pages available in kernel pool.
+372 pages available in user pool.
+Calibrating timer...  130,867,200 loops/s.
 Boot complete.
 Executing 'hello':
 (hello) begin
@@ -12,8 +12,8 @@ hello, world!
 (hello) PASS
 (hello) end
 Execution of 'hello' complete.
-Timer: 20 ticks
-Thread: 0 idle ticks, 21 kernel ticks, 0 user ticks
+Timer: 24 ticks
+Thread: 24 idle ticks, 0 kernel ticks, 0 user ticks
 Console: 376 characters output
 Keyboard: 0 keys pressed
 Powering off...

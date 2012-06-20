@@ -1,10 +1,10 @@
-Writing command line to /tmp/PJmYIg73bJ.dsk...
-qemu -hda /tmp/PJmYIg73bJ.dsk -m 4 -net none -nographic -monitor null
+Writing command line to /tmp/xhNQ9Pnm_6.dsk...
+qemu -hda /tmp/xhNQ9Pnm_6.dsk -m 4 -net none -nographic -monitor null
 Kernel command line: -q run alarm-simultaneous
 Pintos booting with 4,096 kB RAM...
-374 pages available in kernel pool.
-373 pages available in user pool.
-Calibrating timer...  104,755,200 loops/s.
+372 pages available in kernel pool.
+372 pages available in user pool.
+Calibrating timer...  130,867,200 loops/s.
 Boot complete.
 Executing 'alarm-simultaneous':
 (alarm-simultaneous) begin
@@ -28,8 +28,8 @@ Executing 'alarm-simultaneous':
 (alarm-simultaneous) iteration 4, thread 2: woke up 0 ticks later
 (alarm-simultaneous) end
 Execution of 'alarm-simultaneous' complete.
-Timer: 277 ticks
-Thread: 250 idle ticks, 28 kernel ticks, 0 user ticks
+Timer: 276 ticks
+Thread: 26 idle ticks, 250 kernel ticks, 0 user ticks
 Console: 1615 characters output
 Keyboard: 0 keys pressed
 Powering off...

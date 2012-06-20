@@ -1,18 +1,18 @@
-Writing command line to /tmp/n8vFvaU547.dsk...
-qemu -hda /tmp/n8vFvaU547.dsk -m 4 -net none -nographic -monitor null
+Writing command line to /tmp/YciRb93g6r.dsk...
+qemu -hda /tmp/YciRb93g6r.dsk -m 4 -net none -nographic -monitor null
 Kernel command line: -q run alarm-zero
 Pintos booting with 4,096 kB RAM...
-374 pages available in kernel pool.
-373 pages available in user pool.
-Calibrating timer...  104,755,200 loops/s.
+372 pages available in kernel pool.
+372 pages available in user pool.
+Calibrating timer...  130,867,200 loops/s.
 Boot complete.
 Executing 'alarm-zero':
 (alarm-zero) begin
 (alarm-zero) PASS
 (alarm-zero) end
 Execution of 'alarm-zero' complete.
-Timer: 21 ticks
-Thread: 0 idle ticks, 21 kernel ticks, 0 user ticks
+Timer: 24 ticks
+Thread: 24 idle ticks, 0 kernel ticks, 0 user ticks
 Console: 385 characters output
 Keyboard: 0 keys pressed
 Powering off...

@@ -1,18 +1,24 @@
-Writing command line to /tmp/db3Ruu2a2W.dsk...
-qemu -hda /tmp/db3Ruu2a2W.dsk -m 4 -net none -nographic -monitor null
+Writing command line to /tmp/5xtdzZcJ_D.dsk...
+qemu -hda /tmp/5xtdzZcJ_D.dsk -m 4 -net none -nographic -monitor null
 Kernel command line: -q run priority-preempt
 Pintos booting with 4,096 kB RAM...
-375 pages available in kernel pool.
-374 pages available in user pool.
-Calibrating timer...  104,755,200 loops/s.
+372 pages available in kernel pool.
+372 pages available in user pool.
+Calibrating timer...  130,867,200 loops/s.
 Boot complete.
 Executing 'priority-preempt':
 (priority-preempt) begin
+(priority-preempt) Thread high-priority iteration 0
+(priority-preempt) Thread high-priority iteration 1
+(priority-preempt) Thread high-priority iteration 2
+(priority-preempt) Thread high-priority iteration 3
+(priority-preempt) Thread high-priority iteration 4
+(priority-preempt) Thread high-priority done!
 (priority-preempt) The high-priority thread should have already completed.
 (priority-preempt) end
 Execution of 'priority-preempt' complete.
-Timer: 21 ticks
-Thread: 0 idle ticks, 21 kernel ticks, 0 user ticks
-Console: 472 characters output
+Timer: 24 ticks
+Thread: 24 idle ticks, 0 kernel ticks, 0 user ticks
+Console: 778 characters output
 Keyboard: 0 keys pressed
 Powering off...

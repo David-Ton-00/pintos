@@ -1,0 +1,22 @@
+Writing command line to /tmp/TJZ2yLK_0F.dsk...
+qemu -hda /tmp/TJZ2yLK_0F.dsk -m 4 -net none -nographic -monitor null
+Kernel command line: -q -mlfqs run mlfqs-load-1
+Pintos booting with 4,096 kB RAM...
+372 pages available in kernel pool.
+372 pages available in user pool.
+Calibrating timer...  130,867,200 loops/s.
+Boot complete.
+Executing 'mlfqs-load-1':
+(mlfqs-load-1) begin
+(mlfqs-load-1) spinning for up to 45 seconds, please wait...
+(mlfqs-load-1) load average rose to 0.5 after 42 seconds
+(mlfqs-load-1) sleeping for another 10 seconds, please wait...
+(mlfqs-load-1) load average fell back below 0.5 (to 0.43)
+(mlfqs-load-1) PASS
+(mlfqs-load-1) end
+Execution of 'mlfqs-load-1' complete.
+Timer: 5300 ticks
+Thread: 4300 idle ticks, 1000 kernel ticks, 0 user ticks
+Console: 650 characters output
+Keyboard: 0 keys pressed
+Powering off...
